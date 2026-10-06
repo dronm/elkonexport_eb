@@ -1,0 +1,28 @@
+{
+	"websocket_url": "wss://example.com/elkon/ws",
+	"mssql_conn_str": "sqlserver://EXPORT_USER:CHANGE_ME@sql.example.com:1433?database=ELKON",
+	"query_interval_s": 10,
+	"empty_debounce_s": 30,
+	"connect_retry_s": 30,
+	"production_error_debounce_s": 30,
+	"shutdown_s": 10,
+	"log_level": "info",
+	"log_file_name": "logs/elkonexport.log",
+	"auth": {
+		"url": "https://example.com/index.php"
+	},
+	"production": {
+		"query_production_count": 1,
+		"last_production": 0,
+		"production_site_id": 1,
+		"production_site_descr": "Demo production site",
+		"check_unclosed_productions_h": 1,
+		"unclosed_productions": {}
+	},
+	"log_rotation": {
+		"interval_hours": 24,
+		"max_backups": 5,
+		"max_day_age": 30,
+		"compress": true
+	}
+}

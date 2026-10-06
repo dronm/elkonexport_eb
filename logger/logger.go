@@ -3,10 +3,11 @@ package logger
 
 import (
 	"io"
+	"os"
 	"strings"
 
+	"github.com/dronm/elkonexport/config"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Logger is the global logger instance.
@@ -38,28 +39,36 @@ func (lw *LogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func Initialize(logLevel string, logFileName string) error {
-	Logger = logrus.New()
+func Initialize(logLevel string, logFileName string, rotation ...config.LogRotation) error {
+	options := config.LogRotation{Compress: true}
+	if len(rotation) > 0 {
+		options = rotation[0]
+	}
+	options, err := options.WithDefaults()
+	if err != nil {
+		return err
+	}
+	newLogger := logrus.New()
+	var output io.Closer
+	// Close and join the previous writer before opening the same path again.
+	FlushLogFile()
 
 	if logFileName != "" {
-		writer := &lumberjack.Logger{
-			Filename:   logFileName,
-			MaxSize:    20,   // megabytes
-			MaxBackups: 5,    // keep last 5 rotated files
-			MaxAge:     30,   // days
-			LocalTime:  true, // use local time in rotated filenames
-			Compress:   true, // gzip old rotated files
+		writer, err := newTimedWriter(logFileName, options)
+		if err != nil {
+			return err
 		}
-
-		logOutput = writer
-		Logger.SetOutput(writer)
+		output = writer
+		newLogger.SetOutput(writer)
 	}
 
-	Logger.SetFormatter(&logrus.TextFormatter{
+	newLogger.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
 
-	Logger.SetLevel(logrusLogLevel(logLevel))
+	newLogger.SetLevel(logrusLogLevel(logLevel))
+	Logger = newLogger
+	logOutput = output
 
 	return nil
 }
@@ -89,6 +98,9 @@ func logrusLogLevel(logLevel string) logrus.Level {
 
 func FlushLogFile() {
 	if logOutput != nil {
+		if Logger != nil {
+			Logger.SetOutput(os.Stderr)
+		}
 		_ = logOutput.Close()
 		logOutput = nil
 	}

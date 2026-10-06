@@ -36,7 +36,10 @@ func main() {
 	cfg := cfgMgr.Get()
 
 	// Init logger
-	logger.Initialize(cfg.LogLevel, cfg.LogFileName)
+	if err := logger.Initialize(cfg.LogLevel, cfg.LogFileName, cfg.LogRotation); err != nil {
+		dumpToFile(fmt.Sprintf("failed to initialize logger: %v", err))
+		os.Exit(2)
+	}
 	logger.Logger.Infof("starting elkonexport with config: %s", cfgMgr.FileName)
 	defer logger.FlushLogFile()
 
@@ -64,8 +67,14 @@ func main() {
 
 func dumpToFile(s string) {
 	dir, _ := os.Getwd()
-	f, _ := os.OpenFile(filepath.Join(dir, "elkonexport.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(filepath.Join(dir, "elkonexport.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, s)
+		return
+	}
 	defer f.Close()
 
-	fmt.Println(f, s)
+	if _, err := fmt.Fprintln(f, s); err != nil {
+		fmt.Fprintln(os.Stderr, s)
+	}
 }
